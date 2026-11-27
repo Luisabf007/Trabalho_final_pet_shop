@@ -16,14 +16,17 @@ class PetShopServiceTest {
     @Test void cadastrarCliente_normal() {
         assertEquals("Mariana", service.cadastrarCliente(new Cliente(1, "Mariana", "31988887777")).getNome());
     }
+
     @Test void cadastrarCliente_limite8Digitos() {
         assertEquals("12345678", service.cadastrarCliente(new Cliente(1, "Lu", "12345678")).getTelefone());
     }
+
     @Test void cadastrarCliente_erroDuplicadoENulo() {
         service.cadastrarCliente(new Cliente(1, "Mariana", "31988887777"));
         assertThrows(IllegalArgumentException.class, () -> service.cadastrarCliente(new Cliente(1, "X", "31988886666")));
         assertThrows(IllegalArgumentException.class, () -> service.cadastrarCliente(null));
     }
+
     @Test void consultarCliente_normalLimiteEErro() {
         service.cadastrarCliente(new Cliente(10, "Carlos", "31977776666"));
         assertEquals("Carlos", service.consultarCliente(10).getNome());
@@ -31,6 +34,7 @@ class PetShopServiceTest {
         assertEquals(Integer.MAX_VALUE, service.consultarCliente(Integer.MAX_VALUE).getId());
         assertThrows(NoSuchElementException.class, () -> service.consultarCliente(999));
     }
+
     @Test void atualizarCliente_normalLimiteEErro() {
         service.cadastrarCliente(new Cliente(1, "Mariana", "31988887777"));
         assertEquals("Mariana Silva", service.atualizarCliente(1, "Mariana Silva", "31988880000").getNome());
@@ -38,12 +42,14 @@ class PetShopServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.atualizarCliente(1, "  ", "12345678"));
         assertThrows(NoSuchElementException.class, () -> service.atualizarCliente(88, "A", "12345678"));
     }
+
     @Test void excluirCliente_normalLimiteEErro() {
         service.cadastrarCliente(new Cliente(1, "Unico", "12345678"));
         assertTrue(service.excluirCliente(1));
         assertTrue(service.listarClientes().isEmpty());
         assertThrows(NoSuchElementException.class, () -> service.excluirCliente(404));
     }
+
     @Test void petServicoEAgendamento_casosELimites() {
         service.cadastrarCliente(new Cliente(1, "Luísa", "31999998888"));
         assertEquals("Bidu", service.cadastrarPet(new Pet(1, "Bidu", "Cachorro", 1)).getNome());
@@ -57,7 +63,82 @@ class PetShopServiceTest {
         assertTrue(service.excluirAgendamento(1));
         assertThrows(NoSuchElementException.class, () -> service.consultarAgendamento(1));
     }
+
     @Test void main_executaSemErro() {
         assertDoesNotThrow(() -> Main.main(new String[]{}));
+    }
+
+    @Test void cadastrarPet_normal() {
+        service.cadastrarCliente(new Cliente(1, "Luísa", "31999998888"));
+        Pet pet = service.cadastrarPet(new Pet(1, "Thor", "Cachorro", 1));
+        assertEquals(1, pet.getId());
+        assertEquals("Thor", pet.getNome());
+        assertEquals("Cachorro", pet.getEspecie());
+        assertEquals(1, pet.getClienteId());
+    }
+
+    @Test void cadastrarPet_limiteIdMaximo() {
+        service.cadastrarCliente(new Cliente(1, "Luísa", "31999998888"));
+        Pet pet = service.cadastrarPet(new Pet(Integer.MAX_VALUE, "M", "Gato", 1));
+        assertEquals(Integer.MAX_VALUE, pet.getId());
+    }
+
+    @Test void cadastrarPet_erroClienteInexistenteENulo() {
+        assertThrows(NoSuchElementException.class, () -> service.cadastrarPet(new Pet(1, "Rex", "Cão", 999)));
+        assertThrows(IllegalArgumentException.class, () -> service.cadastrarPet(null));
+    }
+
+    @Test void cadastrarServico_normal() {
+        Servico servico = service.cadastrarServico(new Servico(1, "Banho e Tosa", 80.0));
+        assertEquals(1, servico.getId());
+        assertEquals("Banho e Tosa", servico.getNome());
+        assertEquals(80.0, servico.getPreco());
+    }
+
+    @Test void cadastrarServico_limitePrecoMinimo() {
+        Servico servico = service.cadastrarServico(new Servico(1, "Corte de Unha", 0.01));
+        assertEquals(0.01, servico.getPreco());
+    }
+
+    @Test void cadastrarServico_erroPrecoZeroENulo() {
+        assertThrows(IllegalArgumentException.class, () -> new Servico(1, "Banho", 0.0));
+        assertThrows(IllegalArgumentException.class, () -> service.cadastrarServico(null));
+    }
+
+    @Test void cadastrarAgendamento_normal() {
+        service.cadastrarCliente(new Cliente(1, "Luísa", "31999998888"));
+        service.cadastrarPet(new Pet(1, "Mel", "Cachorro", 1));
+        service.cadastrarServico(new Servico(1, "Banho", 55.0));
+
+        Agendamento ag = service.cadastrarAgendamento(
+                new Agendamento(1, 1, 1, "2026-11-28 14:00", "AGENDADO")
+        );
+        assertEquals(1, ag.getId());
+        assertEquals("AGENDADO", ag.getStatus());
+        assertEquals(1, service.listarAgendamentos().size());
+    }
+
+    @Test void cadastrarAgendamento_limiteIdMaximo() {
+        service.cadastrarCliente(new Cliente(1, "Luísa", "31999998888"));
+        service.cadastrarPet(new Pet(1, "Mel", "Cachorro", 1));
+        service.cadastrarServico(new Servico(1, "Banho", 55.0));
+
+        Agendamento ag = service.cadastrarAgendamento(
+                new Agendamento(Integer.MAX_VALUE, 1, 1, "2026-11-28 15:00", "AGENDADO")
+        );
+        assertEquals(Integer.MAX_VALUE, ag.getId());
+    }
+
+    @Test void cadastrarAgendamento_erroNuloEDataVazia() {
+        assertThrows(IllegalArgumentException.class, () -> service.cadastrarAgendamento(null));
+        assertThrows(IllegalArgumentException.class,
+                () -> new Agendamento(1, 1, 1, "   ", "AGENDADO"));
+    }
+
+    @Test void consultarAtualizarEExcluirAgendamento_errosInexistentes() {
+        assertThrows(NoSuchElementException.class, () -> service.consultarAgendamento(999));
+        assertThrows(NoSuchElementException.class,
+                () -> service.atualizarAgendamento(999, "2026-11-28 16:00", "CONFIRMADO"));
+        assertThrows(NoSuchElementException.class, () -> service.excluirAgendamento(999));
     }
 }
